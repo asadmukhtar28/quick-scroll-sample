@@ -5,7 +5,11 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -35,6 +39,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -76,7 +82,7 @@ private val contactsList = arrayListOf<String>().apply {
     add("Asad")
     add("Usman")
 //    add("Abrar")
-    add("Khurrum")
+//    add("Khurrum")
 //    add("Hamza")
 //    add("Arslan")
 //    add("Hakeem")
@@ -111,89 +117,129 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun QuickScrollListing(modifier: Modifier = Modifier, contactsList: List<String> = emptyList()) {
     val list = contactsList.sorted()
-    val alphabetIndexesList = list.map { it.first().uppercaseChar() }.distinct().sorted()
+    val alphabetIndexesList = list.map { it.trim().first().uppercaseChar() }.distinct().sorted()
     val indexedLazyColumnScrollState = rememberLazyListState()
     val contactsLazyColumnScrollState = rememberLazyListState()
     var indexedLazyColumnScrollPosition by rememberSaveable {
-        mutableStateOf("C")
+        mutableStateOf("")
     }
-// Create a mapping of each letter to the index of the first contact starting with that letter
     val letterToIndexMap = alphabetIndexesList.associateWith { letter ->
         list.indexOfFirst { it.startsWith(letter, ignoreCase = true) }
     }
 
-    Row(modifier = modifier) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth(0.90f)
-                .fillMaxHeight()
-                .background(color = Color.Red.copy(alpha = 0.1f)),
-            state = contactsLazyColumnScrollState
-        ) {
-//            item { ItemHeader() }
-            items(list) {
-                ItemListView(name = it)
-            }
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(color = Color.Blue.copy(0.1f))
-                .align(Alignment.CenterVertically)
-        ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Row(modifier = modifier) {
             LazyColumn(
                 modifier = Modifier
-                    .align(Alignment.Center)
-                    .pointerInput(Unit) {
-                        detectDragGestures(
-                            onDragStart = { offset: Offset ->
-                                val index = findClosestEmojiIndex(
-                                    offset.y,
-                                    indexedLazyColumnScrollState
-                                )
-                                indexedLazyColumnScrollPosition =
-                                    alphabetIndexesList
-                                        .getOrNull(index)
-                                        ?.toString() ?: "A"
-                            },
-                            onDragCancel = {},
-                            onDragEnd = {},
-                            onDrag = { change: PointerInputChange, dragAmount: Offset ->
-                                val index = findClosestEmojiIndex(
-                                    change.position.y,
-                                    indexedLazyColumnScrollState
-                                )
-                                indexedLazyColumnScrollPosition =
-                                    alphabetIndexesList
-                                        .getOrNull(index)
-                                        ?.toString() ?: "A"
-                            }
-                        )
-                    },
-//                verticalArrangement = Arrangement.spacedBy(4.dp),
-                state = indexedLazyColumnScrollState
+                    .fillMaxWidth(0.90f)
+                    .fillMaxHeight()
+                    .background(color = Color.Red.copy(alpha = 0.1f)),
+                state = contactsLazyColumnScrollState
             ) {
-                itemsIndexed(alphabetIndexesList) { index, item ->
-                    val scale by animateFloatAsState(
-                        targetValue = if (index == letterToIndexMap[indexedLazyColumnScrollPosition.first()]) 2f else 1f,
-                        animationSpec = tween(200),
-                        label = "Scale Animation"
-                    )
-                    Text(text = item.toString(), fontSize = 16.sp,
-                        modifier = Modifier.graphicsLayer {
-                            scaleX = scale
-                            scaleY = scale
-                        })
+//            item { ItemHeader() }
+                items(list) {
+                    ItemListView(name = it)
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color = Color.Blue.copy(0.1f))
+                    .align(Alignment.CenterVertically)
+            ) {
+                LazyColumn(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .pointerInput(Unit) {
+                            detectDragGestures(onDragStart = { offset: Offset ->
+                                val index = findClosestEmojiIndex(
+                                    offset.y, indexedLazyColumnScrollState
+                                )
+                                if (index != -1) {
+                                    indexedLazyColumnScrollPosition =
+                                        alphabetIndexesList[index].toString()
+                                }
+                            },
+                                onDragCancel = { indexedLazyColumnScrollPosition = "" },
+                                onDragEnd = { indexedLazyColumnScrollPosition = "" },
+                                onDrag = { change: PointerInputChange, dragAmount: Offset ->
+                                    val index = findClosestEmojiIndex(
+                                        change.position.y, indexedLazyColumnScrollState
+                                    )
+                                    if (index != -1) {
+                                        indexedLazyColumnScrollPosition =
+                                            alphabetIndexesList[index].toString()
+                                    }
+                                })
+                        },
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    state = indexedLazyColumnScrollState
+                ) {
+                    itemsIndexed(alphabetIndexesList) { index, item ->
+                        val scale by animateFloatAsState(
+                            targetValue = if (indexedLazyColumnScrollPosition.isNotEmpty() && item == indexedLazyColumnScrollPosition.first()) 2f else 1f,
+                            animationSpec = tween(100),
+                            label = "Scale Animation"
+                        )
+                        Text(text = item.toString(),
+                            fontSize = 16.sp,
+                            modifier = Modifier.graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                            })
+                    }
                 }
             }
         }
+
+        AnimatedScrollingIndex(
+            modifier = Modifier.align(Alignment.Center), indexedLazyColumnScrollPosition
+        )
     }
 
     LaunchedEffect(key1 = indexedLazyColumnScrollPosition) {
-        val targetIndex = letterToIndexMap[indexedLazyColumnScrollPosition[0]] ?: 0
-        Log.d("asad-debug", "targetIndex: $targetIndex")
-        contactsLazyColumnScrollState.scrollToItem(targetIndex)
+        if (indexedLazyColumnScrollPosition.isNotEmpty()) {
+            val targetIndex = letterToIndexMap[indexedLazyColumnScrollPosition[0]] ?: 0
+            Log.d(
+                "asad-debug",
+                "targetIndex: $targetIndex, indexedLazyColumnScrollPosition: $indexedLazyColumnScrollPosition"
+            )
+            Log.d("asad-debug", "Full Contact List: $list")
+            Log.d("asad-debug", "Alphabet Index List: $alphabetIndexesList")
+            contactsLazyColumnScrollState.scrollToItem(targetIndex)
+        }
+    }
+}
+
+@Preview
+@Composable
+fun AnimatedScrollingIndex(modifier: Modifier = Modifier, value: String = "A") {
+    val scalingTransitionAnimation = rememberInfiniteTransition(label = "")
+    val animation = scalingTransitionAnimation.animateFloat(
+        initialValue = 1f,
+        targetValue = 2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 300),
+            repeatMode = RepeatMode.Reverse
+        ), label = ""
+    )
+
+    if (value.isNotEmpty()) {
+        Text(
+            modifier = modifier
+                .graphicsLayer {
+                    scaleX = animation.value
+                    scaleY = animation.value
+                }
+                .drawBehind {
+                    drawRoundRect(
+                        color = Color.Gray.copy(0.1f),
+                        cornerRadius = CornerRadius(10f)
+                    )
+                }
+                .padding(32.dp), text = value
+        )
     }
 }
 
@@ -209,23 +255,9 @@ private fun findClosestEmojiIndex(offsetY: Float, lazyListState: LazyListState):
     return -1
 }
 
-fun findIndexOfAlphabetFromListState(
-    indexedLazyColumnScrollState: LazyListState,
-    offset: Offset
-): Int {
-    Log.d("asad-debug", "values: offset: $offset")
-    val visibleItemsInfo = indexedLazyColumnScrollState.layoutInfo.visibleItemsInfo
-    for (item in visibleItemsInfo) {
-        if (offset.x >= item.offset && offset.x <= item.offset + item.size) {
-            return item.index
-        }
-    }
-    return -1
-}
-
 @Preview
 @Composable
-fun ItemListView(modifier: Modifier = Modifier, name: String = "") {
+fun ItemListView(modifier: Modifier = Modifier, name: String = "A") {
     Row(
         modifier = Modifier
             .fillMaxWidth()
