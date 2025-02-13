@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -39,14 +40,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -55,37 +55,40 @@ import androidx.compose.ui.unit.sp
 import com.asad.quickscroll.ui.theme.QuickScrollTheme
 
 private val contactsList = arrayListOf<String>().apply {
+    add("1231")
+    add("231")
+    add("#")
     add("Bilal")
-//    add("Rahul")
-//    add("Sharat")
+    add("Rahul")
+    add("Sharat")
     add("Sumit")
     add("Zuhaib")
     add("Fawad")
     add("Gohar")
-//    add("Elsadiq")
+    add("Elsadiq")
     add("Harron")
-//    add("Altamesh")
+    add("Altamesh")
     add("Ijaz")
     add("Jawed")
-//    add("Sunny")
-//    add("Qauid e Azam")
+    add("Sunny")
+    add("Qauid e Azam")
     add("Qasim")
     add("Rosy")
     add("Tony")
-//    add("Ali")
+    add("Ali")
     add("Willium")
-//    add("Lulu")
+    add("Lulu")
     add("Lukman")
     add("Mohammad")
     add("Nitesh")
     add("Komal")
     add("Asad")
     add("Usman")
-//    add("Abrar")
-//    add("Khurrum")
-//    add("Hamza")
-//    add("Arslan")
-//    add("Hakeem")
+    add("Abrar")
+    add("Khurrum")
+    add("Hamza")
+    add("Arslan")
+    add("Hakeem")
     add("Danish")
     add("Ch Ali")
     add("Uganda")
@@ -117,7 +120,18 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun QuickScrollListing(modifier: Modifier = Modifier, contactsList: List<String> = emptyList()) {
     val list = contactsList.sorted()
-    val alphabetIndexesList = list.map { it.trim().first().uppercaseChar() }.distinct().sorted()
+    val groupedContacts = list.groupBy {
+        val firstChar = it.first()
+        when {
+            firstChar.isDigit() -> '#' // Group all numbers under '#'
+            else -> firstChar.uppercaseChar()
+        }
+    }
+
+    val alphabetIndexesList = groupedContacts.keys.sortedBy {
+        if (it == '#') '0' else it // Ensure '#' appears first
+    }
+
     val indexedLazyColumnScrollState = rememberLazyListState()
     val contactsLazyColumnScrollState = rememberLazyListState()
     var indexedLazyColumnScrollPosition by rememberSaveable {
@@ -136,15 +150,18 @@ fun QuickScrollListing(modifier: Modifier = Modifier, contactsList: List<String>
                     .background(color = Color.Red.copy(alpha = 0.1f)),
                 state = contactsLazyColumnScrollState
             ) {
-//            item { ItemHeader() }
-                items(list) {
-                    ItemListView(name = it)
+                groupedContacts.forEach { (letter, contactsList) ->
+                    item { ItemHeader(header = letter.toString()) }
+                    items(contactsList) {
+                        ItemListView(name = it)
+                    }
                 }
             }
 
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .heightIn(LocalConfiguration.current.screenHeightDp.dp)
                     .background(color = Color.Blue.copy(0.1f))
                     .align(Alignment.CenterVertically)
             ) {
@@ -184,10 +201,12 @@ fun QuickScrollListing(modifier: Modifier = Modifier, contactsList: List<String>
                         )
                         Text(text = item.toString(),
                             fontSize = 16.sp,
-                            modifier = Modifier.graphicsLayer {
-                                scaleX = scale
-                                scaleY = scale
-                            })
+                            modifier = Modifier
+                                .padding(0.dp)
+                                .graphicsLayer {
+                                    scaleX = scale
+                                    scaleY = scale
+                                })
                     }
                 }
             }
@@ -215,8 +234,8 @@ fun QuickScrollListing(modifier: Modifier = Modifier, contactsList: List<String>
 @Preview
 @Composable
 fun AnimatedScrollingIndex(modifier: Modifier = Modifier, value: String = "A") {
-    val scalingTransitionAnimation = rememberInfiniteTransition(label = "")
-    val animation = scalingTransitionAnimation.animateFloat(
+    val infiniteTransition = rememberInfiniteTransition(label = "infiniteTransition")
+    val scalingAnimation = infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 2f,
         animationSpec = infiniteRepeatable(
@@ -229,16 +248,10 @@ fun AnimatedScrollingIndex(modifier: Modifier = Modifier, value: String = "A") {
         Text(
             modifier = modifier
                 .graphicsLayer {
-                    scaleX = animation.value
-                    scaleY = animation.value
+                    scaleX = scalingAnimation.value
+                    scaleY = scalingAnimation.value
                 }
-                .drawBehind {
-                    drawRoundRect(
-                        color = Color.Gray.copy(0.1f),
-                        cornerRadius = CornerRadius(10f)
-                    )
-                }
-                .padding(32.dp), text = value
+                .padding(0.dp), text = value
         )
     }
 }
@@ -284,9 +297,9 @@ fun ItemListView(modifier: Modifier = Modifier, name: String = "A") {
 
 @Preview
 @Composable
-fun ItemHeader(modifier: Modifier = Modifier) {
+fun ItemHeader(modifier: Modifier = Modifier, header: String = "") {
     Text(
-        text = "C", modifier = Modifier
+        text = header, modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
     )
