@@ -19,5 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "QuickScroll"
+rootProject.name = "Quick Scroll Sample"
 include(":app")
+include(":quickscroll")
