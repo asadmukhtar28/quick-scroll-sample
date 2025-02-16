@@ -1,4 +1,4 @@
-package com.asad.quickscroll.ui.theme
+package com.asad.quickscrollsample.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

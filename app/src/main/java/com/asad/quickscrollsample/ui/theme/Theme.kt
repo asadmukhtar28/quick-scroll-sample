@@ -1,6 +1,5 @@
-package com.asad.quickscroll.ui.theme
+package com.asad.quickscrollsample.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
